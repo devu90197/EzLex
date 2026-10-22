@@ -1,8 +1,8 @@
 # Old Python API — the same routes exist as Next.js routes in src/app/api
-api/
-requirements.txt
+/api/
+/requirements.txt
 *.py
-venv/
+/venv/
 # Never upload secrets or local scratch files
 .env*
 *service-account*.json
