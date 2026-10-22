@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+
+    /* Liquid glass tokens */
+    --glass-bg: rgba(255, 255, 255, 0.42);
+    --glass-bg-soft: rgba(255, 255, 255, 0.28);
+    --glass-border: rgba(255, 255, 255, 0.65);
+    --glass-blur: 22px;
+    --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  * {
+    border-color: hsl(var(--border) / 1);
+  }
+
+  html {
+    scroll-behavior: auto; /* Lenis handles smoothing */
+  }
+
+  body {
+    color: hsl(var(--foreground) / 1);
+    min-height: 100vh;
+    background-color: #e9eefc;
+  }
+}
+
+/* ───────────── Liquid backdrop: drifting colour blobs ───────────── */
+.liquid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 45%, #f5f3ff 100%);
+}
+.liquid-bg span {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.55;
+  will-change: transform;
+}
+.liquid-bg span:nth-child(1) { width: 46vw; height: 46vw; left: -10vw; top: -10vw; background: #60a5fa; animation: drift-a 22s ease-in-out infinite alternate; }
+.liquid-bg span:nth-child(2) { width: 40vw; height: 40vw; right: -8vw; top: 20vh; background: #a78bfa; animation: drift-b 26s ease-in-out infinite alternate; }
+.liquid-bg span:nth-child(3) { width: 38vw; height: 38vw; left: 25vw; bottom: -14vw; background: #22d3ee; animation: drift-c 30s ease-in-out infinite alternate; }
+.liquid-bg span:nth-child(4) { width: 24vw; height: 24vw; right: 22vw; bottom: 10vh; background: #f0abfc; animation: drift-a 34s ease-in-out infinite alternate-reverse; }
+
+@keyframes drift-a { to { transform: translate(18vw, 14vh) scale(1.15); } }
+@keyframes drift-b { to { transform: translate(-16vw, 18vh) scale(0.9); } }
+@keyframes drift-c { to { transform: translate(-12vw, -20vh) scale(1.2); } }
+
+/* Film grain + vignette for the "movie" feel */
+.film-grain {
+  position: fixed;
+  inset: -50%;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: grain 1s steps(6) infinite;
+}
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-3%, 2%); }
+  40% { transform: translate(2%, -3%); }
+  60% { transform: translate(-2%, -1%); }
+  80% { transform: translate(3%, 3%); }
+  100% { transform: translate(0, 0); }
+}
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(15, 23, 42, 0.18) 100%);
+}
+
+/* ───────────── Glass primitive ───────────── */
+.glass {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow);
+}
+
+/* Turn the existing light UI into liquid glass everywhere (except the dark admin console) */
+:where(body) .bg-white,
+:where(body) .bg-white\/90,
+:where(body) .bg-white\/80 {
+  background-color: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border-color: var(--glass-border) !important;
+}
+:where(body) .bg-white.rounded-3xl,
+:where(body) .bg-white.rounded-2xl,
+:where(body) [class*="bg-white"][class*="rounded-["] {
+  box-shadow: var(--glass-shadow);
+}
+
+/* Page-level light backgrounds become transparent so the liquid backdrop shows through */
+.min-h-screen.bg-slate-50,
+.h-screen.bg-slate-50,
+.min-h-screen.bg-gray-50 {
+  background-color: transparent !important;
+}
+/* Nested light surfaces (inputs, inner cards) become softer glass */
+:where(body) .bg-slate-50:not(.min-h-screen):not(.h-screen),
+:where(body) .bg-gray-50:not(.min-h-screen),
+:where(body) .bg-slate-50\/50 {
+  background-color: var(--glass-bg-soft) !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+input, textarea, select {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ───────────── Cinematic scroll: zoom-in reveals (scroll-driven) ───────────── */
+@keyframes cine-zoom-in {
+  from { opacity: 0; transform: scale(0.82) translateY(70px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .cine,
+    main .rounded-3xl:not(.fixed *):not(nav *):not(.no-cine *),
+    main [class*="rounded-[2"]:not(.fixed *):not(nav *):not(.no-cine *),
+    main h1:not(.fixed *):not(.no-cine *) {
+      animation: cine-zoom-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 30%;
+    }
+  }
+}
+
+/* Lenis recommended styles */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-bg span, .film-grain { animation: none; }
+}
+
+/* Fixed navbar: frostier so scrolled content doesn't clash with links */
+nav.glass {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+}
+
+/* ───────────── Compact + responsive across all screen sizes ───────────── */
+@media (max-width: 640px) { html { font-size: 14px; } }
+body { overflow-x: clip; }
+img, video, canvas, svg { max-width: 100%; }
+/* Long words / URLs never force sideways scroll on phones */
+p, h1, h2, h3, li, td { overflow-wrap: anywhere; }
+/* Gentler zoom on phones so cards stay readable while animating */
+@media (max-width: 640px) {
+  @keyframes cine-zoom-in {
+    from { opacity: 0; transform: scale(0.92) translateY(30px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+}
+
+/* The printable legal document must stay solid white paper (PDF export) */
+#printable-legal-document,
+#printable-legal-document .bg-white {
+  background-color: #fff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
+}
+#printable-legal-document * { animation: none !important; }
+
+/* High Court case-status results (HTML relayed from the court website) */
+.court-result { font-size: 0.875rem; color: #1e293b; }
+.court-result table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; min-width: 480px; }
+.court-result th, .court-result td { border: 1px solid rgba(148, 163, 184, 0.35); padding: 0.5rem 0.75rem; text-align: left; vertical-align: top; }
+.court-result th, .court-result tr:first-child td[colspan] { background: rgba(99, 102, 241, 0.08); font-weight: 600; color: #3730a3; }
+.court-result h1, .court-result h2, .court-result h3, .court-result h4 { font-weight: 700; margin: 1rem 0 0.5rem; color: #0f172a; }
+.court-result a { color: #4f46e5; text-decoration: underline; }
+.court-result img { display: none; }
+.court-result .row { display: grid; grid-template-columns: 1fr; gap: 0.25rem 1.5rem; padding: 0.6rem 0; border-bottom: 1px solid rgba(148, 163, 184, 0.25); }
+@media (min-width: 640px) { .court-result .row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.court-result .col-sm-12 { grid-column: 1 / -1; }
+.court-result b, .court-result strong { color: #3730a3; font-weight: 600; }
+/* Compact court tables */
+.court-result { font-size: 0.8rem; }
+.court-result table { margin: 0.4rem 0; }
+.court-result th, .court-result td { padding: 0.35rem 0.55rem; }
+.court-result .row { padding: 0.3rem 0; }
+.court-result h1, .court-result h2, .court-result h3, .court-result h4 { margin: 0.5rem 0 0.3rem; font-size: 0.85rem; }
+.court-result br + br { display: none; }

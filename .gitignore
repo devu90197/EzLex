@@ -1,0 +1,45 @@
+# ── Secrets: never commit ──
+.env
+.env.*
+!.env.example
+**/firebase-service-account.json
+*service-account*.json
+android/keystore/
+android/keystore.properties
+*.jks
+*.keystore
+
+# ── Personal / scratch files ──
+rent.pdf
+web/out.txt
+web/output.txt
+web/parsed_pdf.txt
+.web-git-backup/
+
+# ── Build output & dependencies ──
+node_modules/
+web/.next/
+web/out/
+web/tsconfig.tsbuildinfo
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+release/
+*.apk
+*.aab
+
+# ── Tooling ──
+.venv/
+venv/
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+*.iml
+supabase/.temp/
+supabase/.branches/
+.DS_Store
+Thumbs.db
+*.log

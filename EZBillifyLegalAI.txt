@@ -1,0 +1,143 @@
+
+1. System Architecture & Data Flow
+Our AI legal platform uses a Retrieval-Augmented Generation (RAG) architecture
+. In this design, a user’s query first triggers a semantic search: the query is embedded and compared against a vector database of legal texts. The system retrieves relevant documents (laws, cases, articles) and then feeds them, along with the original query, into a large language model to generate the final answer
+. This “open-book” approach ensures answers are grounded in actual legal content.
+
+Frontend (UI): Chat-based web/mobile app (and possibly WhatsApp/voice bots). The UI accepts user queries (text or voice) and displays answers or generated documents.
+AI Engine (RAG Pipeline): A language model (e.g. Llama/Mistral) plus an embedding model. The query is sent to the AI engine, which creates vector embeddings, retrieves matching legal documents from a vector store, and generates a natural-language response.
+Vector Database: Stores embeddings of legal corpus (e.g. laws, case opinions). Queries use this store to retrieve context.
+Relational/NoSQL DB: Holds structured data (user profiles, submitted complaints, generated documents, etc.).
+Workflow Orchestrator: A tool like n8n or Airflow coordinates calls between the UI, AI engine, and databases. For example, after AI generates a complaint draft, the workflow may log it in the database.
+External APIs & Data Feeds: Includes government open-data APIs and mapping services. For instance, the system may call an eCourts API for case status or an open street-map geocoding API to map an address to a police jurisdiction.
+Data Flow Example: User enters a question. The UI sends it to the backend API. The orchestrator (n8n) directs it to the AI engine. The AI engine uses embeddings to query the vector DB and also may fetch supplementary data (e.g. district info from a government API). The LLM then crafts a response (or document) which flows back through the API to the UI. Throughout, requests and results are logged to the database for tracking and audit.
+
+2. Functional Requirements & AI Behaviors
+Legal Q&A: The system must interpret free-form user queries and identify the legal issue. It should classify the domain (civil, criminal, consumer, etc.) and subdomain (e.g. “landlord dispute”, “theft case”) before answering. The AI should retrieve relevant statutes or precedent and summarize them in plain language.
+Document Generation: On request, it should generate legal documents (FIR, complaints, notices, affidavits) using templates. For example, if a user describes a theft, the AI fills an FIR template with the incident details.
+Jurisdiction Resolution: Given a user’s location or incident address, the system must determine the correct local authority. This means mapping addresses to police station jurisdictions and to the appropriate court. (For geocoding, we might use OpenStreetMap’s Nominatim or government GIS data.)
+Procedure Guidance: Provide step-by-step guidance for procedures (e.g. “How to file an RTI” or “Steps after an accident”). The AI behavior should ensure instructions are accurate and cite relevant laws when appropriate.
+Grounded Answers: Using RAG, answers must be tied to concrete sources. The model should ideally cite the statute or case (or provide links) that support its answer
+.
+Safe Completion: If a query is outside scope or ambiguous, the AI should refuse safely rather than hallucinate. In legal context, it’s better for the system to say “I’m not sure” than to invent a law
+.
+Multilingual Support: The AI should handle major Indian languages (English, Hindi, Kannada, etc.), either via multilingual models or by automatic translation.
+3. Data Schemas, APIs, and Open Data Sources
+We define clear schemas for our core entities. Example tables/collections:
+
+User: { user_id, name, language_pref, contact, location } (stores profile and preferences).
+Complaint: { complaint_id, user_id, case_type, description, incident_location, assigned_police_station_id, status, created_at }.
+PoliceStation: { ps_id, name, address, district, jurisdiction_area, latitude, longitude }.
+Court: { court_id, name, level (e.g. District/High), district, state, address, jurisdiction_desc }.
+Law: { law_id, act_name, section, text } (e.g. IPC sections, CrPC sections).
+APIs & Data Sources: We will integrate several free or open services:
+
+eCourts API: This provides structured case data (party names, case status, orders) for all Indian courts
+. We can use it to fetch case status or hearing dates when tracking a user’s case.
+Government Open Data Portal (India): The national open data platform (data.gov.in) offers published datasets in machine-readable formats
+. It includes data like enacted laws (IPC, CrPC text), district boundaries, police listings, etc. These APIs can supply legal text and geographical/legal boundaries. For example, one can retrieve lists of all police stations or administrative areas.
+Geocoding API: We can use OpenStreetMap’s Nominatim (free) or Google Maps (free tier) to convert addresses to lat/long and then map those to jurisdictions (police/court) via our database.
+Law Repositories: We will scrape or use APIs for legal texts (e.g. India Code API for statutes). These might not have public APIs, but PDF/text versions of laws are often available. Embedding models can index them for retrieval.
+Embedding Models: We will use open-source models (e.g. SentenceTransformers) via Hugging Face inference API (free tier) or host our own to embed documents and queries.
+Supplementary Data: Census or city open-data for addresses, or crime statistics if needed.
+4. Evaluation Metrics & Failure Modes
+To ensure quality, we define metrics for AI outputs:
+
+Answer Correctness: Does the AI’s answer contain only factually correct legal information? (According to our schema, an answer is correct if it is both factually accurate and relevant
+.) We can measure this by comparing to known answers or using LLM-based judgment (e.g. LLM-as-evaluator).
+Answer Relevance: Does the answer address the user’s question directly and concisely
+? (E.g. if asked about “tenant rights”, the answer shouldn’t digress into unrelated topics.)
+Hallucination Rate: Fraction of answers containing fabricated or unsupported statements. For example, the AI must not invent non-existent laws or cases
+. We track when the model cites statutes or cases that are not in our database (indicating a hallucination).
+Retriever Precision: In the RAG setup, how relevant are the documents fetched for each query? We can use metrics like precision/recall of relevant sections.
+Task Completion: For generation tasks (e.g. FIR drafting), measure how often the output meets the requirements (fields filled, format correct).
+User Feedback & Usage: Indirectly measure success by user ratings or follow-up surveys. (E.g. did users find the guidance helpful?)
+Failure Modes to Watch:
+
+Hallucinations: The model might “make up” laws or cases. E.g., as one report shows, an airline chatbot once gave a nonexistent policy and was held legally responsible
+. We must use grounding (RAG) and fallbacks to avoid this.
+Misclassification: The AI could identify the wrong legal category or jurisdiction (e.g. treating a civil matter as criminal). This leads to giving irrelevant law. Robust classification and validation rules are needed.
+Citation Errors: The AI might cite a statute that doesn’t actually cover the issue. For instance, in a reported case, ChatGPT cited fake legal case names
+. Our system should detect such inconsistencies (e.g. by verifying citations against databases).
+Incomplete Retrieval: Key legal documents might be missing from our vector store, so the AI lacks needed context. We mitigate this by regularly updating our knowledge base from official sources.
+Performance/Latency: Slow response (e.g. model timeouts) is a failure mode. We set service-level targets (e.g. <2s response) and use caching (Redis) for frequent queries.
+User Input Errors: Vague or contradictory user input may confuse the AI. In such cases, the AI should ask clarifying questions.
+5. Machine-Readable Specification
+yaml
+Copy
+System:
+  name: "AI Legal Assistance Platform"
+  components:
+    - name: "User Interface"
+      type: "Mobile/Web Chatbot"
+      functions:
+        - "Accepts user queries (text or voice) via chat UI"
+        - "Displays AI responses and generated documents"
+    - name: "AI Engine"
+      type: "RAG-based LLM Processor"
+      functions:
+        - "Embeds queries and retrieves relevant legal texts from vector DB"
+        - "Generates answers or documents using a language model"
+    - name: "VectorDatabase"
+      type: "Chroma/FAISS"
+      contents:
+        - "Embedded legal corpus (laws, case texts, FAQs)"
+    - name: "RelationalDB"
+      type: "PostgreSQL/MongoDB"
+      contents:
+        - "User profiles"
+        - "Submitted complaints and generated documents"
+        - "Reference tables (crime categories, jurisdiction mapping)"
+    - name: "WorkflowOrchestrator"
+      type: "n8n or similar"
+      functions:
+        - "Routes queries between UI, AI Engine, and databases"
+        - "Handles document generation flows and logging"
+    - name: "ExternalAPIs"
+      list:
+        - name: "eCourts API"
+          provides: ["case_search", "case_details", "court_list"]
+        - name: "DataGov India API"
+          provides: ["laws_text", "district_police_mapping", "police_directory"]
+        - name: "Nominatim (OpenStreetMap)"
+          provides: ["geocoding (address -> lat/long)"]
+        - name: "Translation API (if needed)"
+          provides: ["text translation between languages"]
+  data_flow:
+    - from: "User Query (text or voice)"
+      to: "WorkflowOrchestrator"
+      via: "API Gateway"
+      description: "Incoming user request enters the system"
+    - from: "WorkflowOrchestrator"
+      to: "AI Engine"
+      action: "Process Query"
+    - from: "AI Engine"
+      to: "VectorDatabase"
+      action: "Semantic Search for relevant documents"
+    - from: "VectorDatabase"
+      to: "AI Engine"
+      content: "Retrieved legal context (texts, case excerpts)"
+    - from: "AI Engine"
+      to: "WorkflowOrchestrator"
+      action: "Return generated answer or document"
+    - from: "WorkflowOrchestrator"
+      to: "User Interface"
+      action: "Deliver response to user"
+  evaluation_metrics:
+    - answer_correctness: "Factual accuracy of answers (no incorrect info)"
+    - answer_relevance: "Degree to which answer addresses the query"
+    - hallucination_rate: "Rate of unsupported or fabricated statements"
+    - retrieval_precision: "Relevance of documents fetched by the retriever"
+    - document_completeness: "Quality of generated legal documents (all fields populated correctly)"
+    - task_success_rate: "Fraction of user tasks (e.g. complaint generation) completed successfully"
+  failure_modes:
+    - hallucination: "AI fabricates laws or cases (mitigate with RAG grounding)"
+    - misclassification: "Wrong legal category or law applied"
+    - missing_context: "Needed law or precedent not found in database"
+    - jurisdiction_error: "Incorrect police/court jurisdiction identified for a user location"
+    - security_risk: "Disclosure of user data or malicious prompt exploitation"
+Sources: Our design follows standard RAG architecture principles
+, uses India’s open data sources
+, and incorporates metrics from LLM evaluation research
+. We also heed real-world AI failure cases (e.g. legal hallucinations
+) to inform our error handling and evaluation.

@@ -1,0 +1,44 @@
+# ─── Next.js ──────────────────────────────────────────────────────────────────
+.next/
+out/
+build/
+dist/
+
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Environment Variables (NEVER commit these) ────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ─── 🔥 Firebase Service Account Key (CRITICAL - contains private keys) ───────
+api/firebase-service-account.json
+*service-account*.json
+*serviceAccount*.json
+*.json.key
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ─── IDE ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
